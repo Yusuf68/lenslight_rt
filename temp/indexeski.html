@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XML to Excel</title>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+        width: 4%; /* Adjust this value as needed */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    table td, table th {
+        padding: 15px;
+        border: 1px solid #ddd;
+    }
+    table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    table tr:hover {
+        background-color: #ddd;
+    }
+    table th {
+        background-color: #4CAF50;
+        color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="btn-group" role="group" aria-label="Button group">
+    <input type="file" id="xmlFile" multiple accept=".xml" class="btn btn-primary" />
+    <button onclick="loadXML()" class="btn btn-secondary">Load XML</button>
+    <button onclick="exportToExcel()" class="btn btn-success">Export to Excel</button>
+    <button onclick="clearTable()" class="btn btn-danger">Clear Table</button>
+  </div>
+  <table id="dataTable">
+    <tr>
+        <th>Tarih</th>
+        <th>Fatura No</th>
+        <th>Satıcı VKNo</th>
+        <th>Satıcı Ünvanı</th>
+        <th>Sıra No</th>
+        <th>Fatura Tipi</th>
+        <th>Döviz Kuru</th>
+        <th>Mal Hizmet</th>
+        <th>Miktar</th>
+        <th>Birim Fiyat</th>
+        <th>İsk. Oran</th>
+        <th>İsk. Tutar</th>
+        <th>Kdv Oran</th>
+        <th>Kdv Tutar</th>
+        <th>Diğer Vergiler</th>
+        <th>Mal Hiz. Tutar</th>
+        <th>Mal Hiz. Top. Tutar</th>
+        <th>Toplam İsk.</th>
+        <th>Top. Hes. Kdv</th>
+        <th>Top. Hes. Ötv</th>
+        <th>Kdv Tev. Oranı</th>
+        <th>Verg. Dahil Top. Tutar</th>
+        <th>Ödenecek Tutar</th>
+        <th>Açıklama</th>
+    </tr>
+    <!-- Table data will be inserted here -->
+  </table>
+
+  <script>
+      let xmlFiles = [];
+      let xmlData = [];
+
+      document.getElementById('xmlFile').addEventListener('change', function(e) {
+          xmlFiles = e.target.files;
+      });
+
+      async function loadXML() {
+          for (let i = 0; i < xmlFiles.length; i++) {
+              let file = xmlFiles[i];
+              let text = await file.text();
+              let parser = new DOMParser();
+              let xmlDoc = parser.parseFromString(text,"text/xml");
+
+              let additionalDocumentReferences = xmlDoc.getElementsByTagName("cac:AdditionalDocumentReference");
+              for (let j = 0; j < additionalDocumentReferences.length; j++) {
+                  let id = additionalDocumentReferences[j].getElementsByTagName("cbc:ID")[0].childNodes[0].nodeValue;
+                  if (id === "TARIH") {
+                      let date = additionalDocumentReferences[j].getElementsByTagName("cbc:IssueDate")[0].childNodes[0].nodeValue;
+                      let dateParts = date.split("-");
+                      let formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                      xmlData.push({date: formattedDate});
+
+                      let row = document.createElement('tr');
+                      row.innerHTML = `<td>${formattedDate}</td><td></td><td></td><td></td>`;
+                      document.getElementById('dataTable').appendChild(row);
+                      break;
+                  }
+              }
+          }
+      }
+
+      function exportToExcel() {
+          let ws = XLSX.utils.json_to_sheet(xmlData);
+          let wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+          XLSX.writeFile(wb, "output.xlsx");
+      }
+
+      function clearTable() {
+          xmlData = [];
+          let table = document.getElementById('dataTable');
+          while (table.rows.length > 1) {
+              table.deleteRow(1);
+          }
+      }
+  </script>
+</body>
+</html>
